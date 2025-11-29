@@ -129,6 +129,8 @@ __pypackages__/
 
 # Generated images
 generated_images/
+generated_videos/
+media/
 
 # Celery stuff
 celerybeat-schedule

@@ -28,7 +28,7 @@
   <header>
     <div>
       <h1>图生视频</h1>
-      <p>上传图片 URL 并补充动作/镜头描述，可附加音频。</p>
+      <p>支持 2 种图片输入：公网 URL 或 file:// 本地文件（生成约 1-5 分钟）。</p>
     </div>
     <div style="display:flex; gap:10px;">
       <a href="/web/video.html" style="text-decoration:none; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#111;">类型选择</a>
@@ -39,22 +39,24 @@
     <div class="card">
       <h2>提示词与素材要求</h2>
       <ul>
-        <li>图片需公网可访问，清晰、主体居中</li>
-        <li>补充动作：摇头、奔跑、镜头推拉等</li>
-        <li>风格说明：胶片、二次元、写实等</li>
-        <li>音频可选：留空使用默认音频</li>
+        <li>方式 1：填写公网图片 URL（官方示例按钮可填充）</li>
+        <li>方式 2：上传本地图片，自动转 file:// 路径</li>
+        <li>补充动作/镜头/风格，音频可选（默认官方示例音频）</li>
       </ul>
+      <button id="i2v-fill-sample" style="width:auto; padding:8px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#f1f5f9; cursor:pointer;">填充官方示例 URL 与音频</button>
       <label>模型</label>
       <select id="i2v-model">
         <option value="wan2.2-t2v-plus" selected>wan2.2-t2v-plus</option>
         <option value="wan2.5-t2v-preview">wan2.5-t2v-preview</option>
       </select>
       <label>图片 URL</label>
-      <input id="i2v-image-url" placeholder="公网可访问的图片 URL" />
+      <input id="i2v-image-url" placeholder="公网 URL 或 file:// 路径" />
+      <label style="margin-top:8px;">或上传本地图片（jpg/png/webp，≤10M）</label>
+      <input type="file" id="i2v-image-file" accept=".jpg,.jpeg,.png,.webp" />
       <label>补充提示词</label>
       <textarea id="i2v-prompt" placeholder="描述希望的动作、镜头、风格"></textarea>
-      <label>音频 URL（可留空，自动使用默认音频）</label>
-      <input id="i2v-audio-url" placeholder="可选，公网可访问音频 URL" />
+      <label>音频 URL（可留空，自动使用官方示例音频）</label>
+      <input id="i2v-audio-url" value="https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20250925/ozwpvi/rap.mp3" placeholder="可选，公网可访问或 file:// 音频 URL" />
       <label style="margin-top:8px;">上传音频文件（≤3M，mp3/wav/m4a/aac）</label>
       <input type="file" id="i2v-audio-file" accept=".mp3,.wav,.m4a,.aac" />
       <button id="i2v-send">生成图生视频</button>
@@ -67,10 +69,10 @@
   <script>
     function setOutput(text) { const el = document.getElementById("i2v-output"); if (el) el.textContent = text; }
     function handleResult(url) {
-      setOutput(url.startsWith("http") ? "生成成功" : "生成失败");
+      setOutput(url && url.startsWith("http") ? "生成成功" : "生成失败");
       const player = document.getElementById("i2v-player");
       const dl = document.getElementById("i2v-download");
-      if (url.startsWith("http")) {
+      if (url && url.startsWith("http")) {
         player.src = url; player.style.display = "block";
         dl.href = url; dl.style.display = "inline";
       } else { alert("视频生成失败，请稍后重试"); }
@@ -83,6 +85,24 @@
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json(); return data.url;
     }
+    async function uploadImage(file) {
+      if (!file) return null;
+      if (file.size > 10 * 1024 * 1024) { alert("图片超过 10M 限制"); return null; }
+      const fd = new FormData(); fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json(); return data.url;
+    }
+    document.getElementById("i2v-image-file").onchange = async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      try {
+        setOutput("图片上传中...");
+        const url = await uploadImage(file);
+        if (url) { document.getElementById("i2v-image-url").value = url; setOutput("图片上传成功"); }
+      } catch (err) {
+        alert(`上传失败：${err.message || err}`); setOutput("");
+      } finally { e.target.value = ""; }
+    };
     document.getElementById("i2v-audio-file").onchange = async (e) => {
       const file = e.target.files[0]; if (!file) return;
       try {
@@ -100,7 +120,7 @@
       const duration = 5;
       const resolution = "720p";
       const audio_url = document.getElementById("i2v-audio-url").value.trim();
-      if (!image_url) { alert("请输入图片 URL"); return; }
+      if (!image_url) { alert("请提供图片 URL 或 file://"); return; }
       setOutput("提交中...");
       try {
         const res = await fetch("/api/video/i2v", {
@@ -114,6 +134,11 @@
       } catch (err) {
         alert(`请求失败：${err}`); setOutput("");
       }
+    };
+    document.getElementById("i2v-fill-sample").onclick = () => {
+      document.getElementById("i2v-image-url").value = "https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20250925/wpimhv/rap.png";
+      document.getElementById("i2v-audio-url").value = "https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20250925/ozwpvi/rap.mp3";
+      setOutput("已填充官方示例 URL");
     };
   </script>
 </body>

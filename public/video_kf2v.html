@@ -28,7 +28,7 @@
   <header>
     <div>
       <h1>首尾帧生视频</h1>
-      <p>提供首尾帧 URL 和过渡描述，生成自然衔接的视频。</p>
+      <p>提供首尾帧 URL 和过渡描述，生成自然衔接的视频（生成约 1-5 分钟）。</p>
     </div>
     <div style="display:flex; gap:10px;">
       <a href="/web/video.html" style="text-decoration:none; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#111;">类型选择</a>
@@ -50,8 +50,12 @@
       </select>
       <label>首帧 URL</label>
       <input id="kf2v-first-url" placeholder="公网可访问的首帧 URL" />
+      <label style="margin-top:8px;">或上传首帧（jpg/png/webp，≤10M）</label>
+      <input type="file" id="kf2v-first-file" accept=".jpg,.jpeg,.png,.webp" />
       <label>尾帧 URL</label>
       <input id="kf2v-last-url" placeholder="公网可访问的尾帧 URL" />
+      <label style="margin-top:8px;">或上传尾帧（jpg/png/webp，≤10M）</label>
+      <input type="file" id="kf2v-last-file" accept=".jpg,.jpeg,.png,.webp" />
       <label>过渡提示词</label>
       <textarea id="kf2v-prompt" placeholder="描述过渡动作、速度、光线、风格一致性"></textarea>
       <label>分辨率</label>
@@ -78,6 +82,34 @@
         dl.href = url; dl.style.display = "inline";
       } else { alert("视频生成失败，请稍后重试"); }
     }
+    async function uploadImage(file) {
+      if (!file) return null;
+      if (file.size > 10 * 1024 * 1024) { alert("图片超过 10M 限制"); return null; }
+      const fd = new FormData(); fd.append("file", file);
+      const res = await fetch("/api/upload/image", { method: "POST", body: fd });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json(); return data.url;
+    }
+    function bindImageUpload(inputId, targetInputId) {
+      const fileInput = document.getElementById(inputId);
+      if (!fileInput) return;
+      fileInput.onchange = async (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        try {
+          setOutput("图片上传中...");
+          const url = await uploadImage(file);
+          if (url) {
+            const target = document.getElementById(targetInputId);
+            if (target) target.value = url;
+            setOutput("图片上传成功");
+          }
+        } catch (err) {
+          alert(`上传失败：${err.message || err}`); setOutput("");
+        } finally { e.target.value = ""; }
+      };
+    }
+    bindImageUpload("kf2v-first-file", "kf2v-first-url");
+    bindImageUpload("kf2v-last-file", "kf2v-last-url");
     document.getElementById("kf2v-send").onclick = () => {
       const model = document.getElementById("kf2v-model").value;
       const prompt = document.getElementById("kf2v-prompt").value.trim();
