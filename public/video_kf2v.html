@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>首尾帧生视频 - 通义万相</title>
+  <style>
+    :root { --bg:#f4f6fb; --card:#fff; --text:#0f172a; --muted:#475569; --accent:#0fa9a7; }
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:18px; }
+    header { padding:18px 24px; background:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; }
+    main { max-width:960px; margin:24px auto; padding:0 12px; }
+    .card { background:var(--card); border:1px solid #e2e8f0; border-radius:18px; padding:20px; box-shadow:0 16px 40px rgba(0,0,0,0.06); }
+    h1 { margin:0; font-size:30px; }
+    h2 { margin:0 0 8px; font-size:22px; }
+    p { margin:6px 0; color:var(--muted); line-height:1.7; }
+    label { display:block; margin:12px 0 6px; font-weight:700; color:var(--muted); }
+    select, textarea, input, button { width:100%; box-sizing:border-box; font-size:17px; }
+    textarea { min-height:100px; padding:12px; border-radius:12px; border:1px solid #e5e7eb; }
+    select, input { padding:12px; border-radius:12px; border:1px solid #e5e7eb; }
+    button { margin-top:14px; padding:14px; border:none; border-radius:14px; background:var(--accent); color:#fff; font-weight:800; cursor:pointer; }
+    .output { margin-top:10px; min-height:42px; color:var(--text); word-break:break-all; }
+    video { width:100%; margin-top:12px; border-radius:14px; display:none; }
+    .download { margin-top:10px; display:none; font-weight:700; color:var(--accent); }
+    ul { margin:6px 0 12px; padding-left:20px; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>首尾帧生视频</h1>
+      <p>提供首尾帧 URL 和过渡描述，生成自然衔接的视频。</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <a href="/web/video.html" style="text-decoration:none; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#111;">类型选择</a>
+      <a href="/web/index.html" style="text-decoration:none; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#111;">返回首页</a>
+    </div>
+  </header>
+  <main>
+    <div class="card">
+      <h2>提示词与素材要求</h2>
+      <ul>
+        <li>首帧/尾帧需公网可访问，画面风格相近更自然</li>
+        <li>描述过渡节奏：平滑推拉、快慢镜、淡入淡出</li>
+        <li>说明光线/色调保持一致，避免突变</li>
+      </ul>
+      <label>模型</label>
+      <select id="kf2v-model">
+        <option value="wan2.2-t2v-plus" selected>wan2.2-t2v-plus</option>
+        <option value="wan2.5-t2v-preview">wan2.5-t2v-preview</option>
+      </select>
+      <label>首帧 URL</label>
+      <input id="kf2v-first-url" placeholder="公网可访问的首帧 URL" />
+      <label>尾帧 URL</label>
+      <input id="kf2v-last-url" placeholder="公网可访问的尾帧 URL" />
+      <label>过渡提示词</label>
+      <textarea id="kf2v-prompt" placeholder="描述过渡动作、速度、光线、风格一致性"></textarea>
+      <label>分辨率</label>
+      <select id="kf2v-res">
+        <option value="480p">480P</option>
+        <option value="720p" selected>720P</option>
+        <option value="1080p">1080P</option>
+      </select>
+      <button id="kf2v-send">生成首尾帧视频</button>
+      <div class="output" id="kf2v-output"></div>
+      <video id="kf2v-player" controls></video>
+      <a id="kf2v-download" class="download" href="#" download="kf2v.mp4">下载视频</a>
+    </div>
+  </main>
+
+  <script>
+    function setOutput(text) { const el = document.getElementById("kf2v-output"); if (el) el.textContent = text; }
+    function handleResult(url) {
+      setOutput(url.startsWith("http") ? "生成成功" : "生成失败");
+      const player = document.getElementById("kf2v-player");
+      const dl = document.getElementById("kf2v-download");
+      if (url.startsWith("http")) {
+        player.src = url; player.style.display = "block";
+        dl.href = url; dl.style.display = "inline";
+      } else { alert("视频生成失败，请稍后重试"); }
+    }
+    document.getElementById("kf2v-send").onclick = () => {
+      const model = document.getElementById("kf2v-model").value;
+      const prompt = document.getElementById("kf2v-prompt").value.trim();
+      const first_frame_url = document.getElementById("kf2v-first-url").value.trim();
+      const last_frame_url = document.getElementById("kf2v-last-url").value.trim();
+      const resolution = document.getElementById("kf2v-res").value;
+      if (!first_frame_url || !last_frame_url) { alert("请输入首尾帧 URL"); return; }
+      setOutput("提交中...");
+      fetch("/api/video/kf2v", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, prompt, first_frame_url, last_frame_url, resolution })
+      })
+      .then(res => { setOutput("生成中..."); return res.json(); })
+      .then(data => handleResult(data.url || ""))
+      .catch(err => { alert(`请求失败：${err}`); setOutput(""); });
+    };
+  </script>
+</body>
+</html>

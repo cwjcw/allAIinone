@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AllAI 汇集 - 模块总览</title>
+  <style>
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:#f7f9fb; color:#111; }
+    header { padding:24px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+    h1 { margin:0; font-size:24px; }
+    main { padding:24px; display:grid; gap:16px; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow:0 8px 20px rgba(0,0,0,0.06); }
+    .card h2 { margin:0 0 8px; font-size:18px; }
+    .card p { margin:0 0 12px; color:#4b5563; line-height:1.5; }
+    .card a { display:inline-block; padding:10px 14px; border-radius:10px; background:#1bc48f; color:#fff; text-decoration:none; font-weight:700; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AllAI 汇集 - 模块总览</h1>
+    <p>选择模块进入对应功能页面。对话仅使用 OpenRouter 免费模型；视频基于通义万相。</p>
+  </header>
+  <main>
+    <div class="card">
+      <h2>对话</h2>
+      <p>使用 OpenRouter 免费模型聊天，支持模型刷新写入本地缓存。</p>
+      <a href="/web/chat.html">进入对话</a>
+    </div>
+    <div class="card">
+      <h2>画图</h2>
+      <p>使用 OpenRouter 图像模型生成图片，支持预览与下载。</p>
+      <a href="/web/image.html">进入画图</a>
+    </div>
+    <div class="card">
+      <h2>视频</h2>
+      <p>通义万相：文生视频、图生视频、视频编辑、首尾帧生视频，支持播放/下载。</p>
+      <a href="/web/video.html">进入视频</a>
+    </div>
+  </main>
+</body>
+</html>

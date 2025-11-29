@@ -72,6 +72,43 @@ def download_video(video_url: str) -> Path:
     return out_path
 
 
+def generate_video_sdk(
+    prompt: str,
+    model: str = DEFAULT_MODEL,
+    size: str = DEFAULT_SIZE,
+    duration: int = DEFAULT_DURATION,
+    watermark: str = "",
+    audio_url: str = DEFAULT_AUDIO_URL,
+    api_key: str | None = None,
+) -> str:
+    """
+    纯 SDK 调用，复用 GUI 的默认参数，返回视频直链。
+    """
+    if not prompt:
+        raise RuntimeError("提示词不能为空")
+    _api_key = api_key or load_api_key()
+    rsp = VideoSynthesis.call(
+        api_key=_api_key,
+        model=model,
+        prompt=prompt,
+        size=size,
+        duration=duration,
+        negative_prompt="",
+        watermark=watermark if watermark.strip() else None,
+        prompt_extend=True,
+        seed=12345,
+        audio_url=audio_url.strip() or None,
+    )
+    if rsp.status_code == HTTPStatus.OK:
+        video_url = getattr(rsp.output, "video_url", None)
+        if not video_url:
+            raise RuntimeError("未返回视频地址")
+        return video_url
+    raise RuntimeError(
+        f"Failed, status_code: {rsp.status_code}, code: {rsp.code}, message: {rsp.message}"
+    )
+
+
 def run_generation(
     api_key: str,
     model: str,

@@ -204,6 +204,8 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+openrouter_models.json
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>视频类型选择 - 通义万相</title>
+  <style>
+    :root { --bg:#f4f6fb; --card:#fff; --text:#0f172a; --muted:#475569; --accent:#0fa9a7; }
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:18px; }
+    header { padding:18px 24px; background:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; }
+    main { max-width:1100px; margin:24px auto; display:grid; gap:18px; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); padding:0 12px; }
+    .card { background:var(--card); border:1px solid #e2e8f0; border-radius:18px; padding:18px; box-shadow:0 16px 40px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:10px; }
+    h1 { margin:0; font-size:28px; }
+    h2 { margin:0; font-size:22px; }
+    p { margin:0; color:var(--muted); line-height:1.6; }
+    a.button { display:inline-flex; align-items:center; justify-content:center; padding:12px 16px; border-radius:12px; text-decoration:none; font-weight:700; color:#fff; background:var(--accent); margin-top:8px; }
+    ul { padding-left:18px; margin:6px 0 0; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>视频创作中心</h1>
+      <p>选择一个视频类型进入单独页：更大的字体、清晰的步骤与提示词说明</p>
+    </div>
+    <a href="/web/index.html" style="text-decoration:none; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#111;">返回首页</a>
+  </header>
+  <main>
+    <div class="card">
+      <h2>文生视频</h2>
+      <p>用自然语言描述镜头、场景、风格与运动，让模型直接生成视频。</p>
+      <ul>
+        <li>包含主体、环境、光线和运动轨迹</li>
+        <li>控制时长、分辨率，可附加音频</li>
+      </ul>
+      <a class="button" href="/web/video_t2v.html">进入文生视频页</a>
+    </div>
+    <div class="card">
+      <h2>图生视频</h2>
+      <p>上传图片+补充描述，生成连贯的短视频，可附加音频。</p>
+      <ul>
+        <li>图片应为公网可访问 URL</li>
+        <li>描述补充动作与镜头语言</li>
+      </ul>
+      <a class="button" href="/web/video_i2v.html">进入图生视频页</a>
+    </div>
+    <div class="card">
+      <h2>首尾帧生视频</h2>
+      <p>给出首尾帧 URL 和过渡描述，生成过渡视频。</p>
+      <ul>
+        <li>描述中写清过渡节奏与风格</li>
+        <li>适合做开场/结尾衔接</li>
+      </ul>
+      <a class="button" href="/web/video_kf2v.html">进入首尾帧页</a>
+    </div>
+  </main>
+</body>
+</html>
