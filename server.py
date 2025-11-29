@@ -6,13 +6,13 @@ from typing import Any, Dict, List, Optional
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
-from wan_video_sdk_gui import generate_video_sdk
+from dashscope import VideoSynthesis
 from wan_i2v_sdk import run_i2v_async_then_wait, I2VSDKError
 from wan_kf2v_sdk import run_kf2v_async_then_wait, KF2VSDKError
 
@@ -22,9 +22,6 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
 MODEL_CACHE = Path("openrouter_models.json")
-MEDIA_DIR = Path("media")
-MEDIA_DIR.mkdir(exist_ok=True)
-DEFAULT_AUDIO_URL = "/media/admin.mp3"
 
 
 def ensure_keys() -> None:
@@ -183,7 +180,7 @@ def call_dashscope_video(req: VideoRequest, mode: str) -> str:
     """
     文生视频走 dashscope SDK（同 wan_video_sdk_gui.py 的思路），i2v/edit 继续用 HTTP。
     """
-    ensure_keys()
+    ensure_keys() 
 
     def resolution_to_size(res: str) -> str:
         res = res.lower()
@@ -195,16 +192,30 @@ def call_dashscope_video(req: VideoRequest, mode: str) -> str:
             return "1440*810"  # SDK 示例里的 16:9 选项
         return "832*480"
 
-    # 文生视频：直接复用 GUI 脚本的 SDK 封装，默认参数与 wan_video_sdk_gui.py 保持一致
+    # 文生视频：SDK 直返 video_url
     if mode == "t2v":
         try:
-            return generate_video_sdk(
-                prompt=req.prompt,
+            rsp = VideoSynthesis.call(
+                api_key=DASHSCOPE_API_KEY,
                 model=req.model,
+                prompt=req.prompt,
                 size=resolution_to_size(req.resolution),
                 duration=req.duration,
-                audio_url=req.audio_url or DEFAULT_AUDIO_URL,
-                api_key=DASHSCOPE_API_KEY,
+                negative_prompt="",
+                prompt_extend=True,
+                watermark=None,
+                seed=12345,
+            )
+            if rsp.status_code == 200:
+                url = getattr(rsp.output, "video_url", None)
+                if not url:
+                    raise HTTPException(
+                        status_code=500, detail="未返回视频地址，请检查模型权限或参数"
+                    )
+                return url
+            raise HTTPException(
+                status_code=rsp.status_code,
+                detail=f"dashscope error: code={rsp.code}, message={rsp.message}",
             )
         except Exception as exc:
             raise HTTPException(status_code=502, detail=str(exc))
@@ -219,7 +230,7 @@ def call_dashscope_video(req: VideoRequest, mode: str) -> str:
                 img_url=req.image_url or "",
                 resolution=req.resolution,
                 duration=req.duration,
-                audio_url=req.audio_url or DEFAULT_AUDIO_URL,
+                audio_url=req.audio_url,
                 audio=req.audio,
                 prompt_extend=True,
                 watermark=None,
@@ -230,6 +241,78 @@ def call_dashscope_video(req: VideoRequest, mode: str) -> str:
             raise HTTPException(status_code=502, detail=str(exc))
         except Exception as exc:
             raise HTTPException(status_code=502, detail=str(exc))
+
+    # 视频编辑：沿用 HTTP 流程
+    headers = {
+        "X-DashScope-API-Key": DASHSCOPE_API_KEY,
+        "Authorization": f"Bearer {DASHSCOPE_API_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    input_obj: Dict[str, Any] = {
+        "prompt": req.prompt,
+        "duration": req.duration,
+        "resolution": req.resolution.upper(),
+    }
+    if mode == "i2v":
+        if not req.image_url:
+            raise HTTPException(status_code=400, detail="图生视频需要 image_url")
+        input_obj["image_url"] = req.image_url
+    if mode == "edit":
+        if not req.video_url:
+            raise HTTPException(status_code=400, detail="视频编辑需要 video_url")
+        input_obj["video_url"] = req.video_url
+
+    payload = {"model": req.model, "input": input_obj}
+    resp = requests.post(
+        "https://dashscope.aliyuncs.com/api/v1/services/aigc/video-generation/generation",
+        headers=headers,
+        json=payload,
+        timeout=120,
+    )
+    if not resp.ok:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text[:500])
+    data = resp.json()
+    url = (
+        data.get("url")
+        or data.get("video_url")
+        or data.get("output", {}).get("url")
+        or data.get("output", {}).get("video_url")
+    )
+    if url:
+        return url
+    task_id = (
+        data.get("task_id") or data.get("id") or data.get("output", {}).get("task_id")
+    )
+    if not task_id:
+        raise HTTPException(status_code=500, detail=f"无法获取 task_id: {data}")
+
+    for _ in range(40):
+        time.sleep(3)
+        task_resp = requests.get(
+            f"https://dashscope.aliyuncs.com/api/v1/tasks/{task_id}",
+            headers=headers,
+            timeout=60,
+        )
+        if not task_resp.ok:
+            continue
+        task_data = task_resp.json()
+        status = task_data.get("status") or task_data.get("output", {}).get(
+            "task_status"
+        )
+        if status and status.upper() in {"SUCCEEDED", "SUCCESS"}:
+            url = (
+                task_data.get("url")
+                or task_data.get("video_url")
+                or task_data.get("output", {}).get("url")
+                or task_data.get("output", {}).get("video_url")
+            )
+            if url:
+                return url
+        if status and status.upper() in {"FAILED"}:
+            raise HTTPException(status_code=500, detail=f"任务失败: {task_data}")
+    raise HTTPException(status_code=504, detail="视频生成超时")
+
 
 app = FastAPI(title="AllAIInOne API")
 app.add_middleware(
@@ -273,6 +356,12 @@ def api_video_i2v(req: VideoRequest) -> Dict[str, Any]:
     return {"url": url}
 
 
+@app.post("/api/video/edit")
+def api_video_edit(req: VideoRequest) -> Dict[str, Any]:
+    url = call_dashscope_video(req, mode="edit")
+    return {"url": url}
+
+
 @app.post("/api/video/kf2v")
 def api_video_kf2v(req: KF2VRequest) -> Dict[str, Any]:
     try:
@@ -292,25 +381,6 @@ def api_video_kf2v(req: KF2VRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=502, detail=str(exc))
 
 
-MAX_AUDIO_SIZE = 3 * 1024 * 1024
-ALLOWED_AUDIO_SUFFIX = {".mp3", ".wav", ".m4a", ".aac"}
-
-
-@app.post("/api/upload/audio")
-async def api_upload_audio(file: UploadFile = File(...)) -> Dict[str, Any]:
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="未收到音频文件")
-    if len(content) > MAX_AUDIO_SIZE:
-        raise HTTPException(status_code=413, detail="音频超过3M限制")
-    suffix = Path(file.filename or "").suffix.lower()
-    if suffix not in ALLOWED_AUDIO_SUFFIX:
-        suffix = ".mp3"
-    out_path = MEDIA_DIR / f"audio_{int(time.time())}{suffix}"
-    out_path.write_bytes(content)
-    return {"url": f"/media/{out_path.name}"}
-
-
 @app.get("/")
 def root() -> FileResponse:
     index_path = Path("public/index.html")
@@ -320,4 +390,3 @@ def root() -> FileResponse:
 
 
 app.mount("/web", StaticFiles(directory="public", html=True), name="web")
-app.mount("/media", StaticFiles(directory=MEDIA_DIR, html=False), name="media")
