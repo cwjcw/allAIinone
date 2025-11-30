@@ -115,6 +115,10 @@ class ImageRequest(BaseModel):
     model: str
     prompt: str
     size: str = "1024x1024"
+    image_url: Optional[str] = None  # 远程图片 URL（可选，兼容单个）
+    image_url_list: Optional[List[str]] = None  # 最多 4 个 URL
+    image_b64: Optional[str] = None  # 前端上传的 base64（不含 data: 前缀，可选，兼容单张）
+    image_b64_list: Optional[List[str]] = None  # 支持多张上传（最多 4 张）
 
 
 class VideoRequest(BaseModel):
@@ -159,12 +163,80 @@ def call_openrouter_chat(req: ChatRequest) -> Dict[str, Any]:
 
 def call_openrouter_image(req: ImageRequest) -> Dict[str, Any]:
     ensure_keys()
+    lower_model = req.model.lower()
+    # Gemini Image 模型走 chat/completions + modalities；其它（如 DALL-E/gpt-image）保持 images 接口
+    if "gemini" in lower_model:
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": os.getenv("OPENROUTER_SITE_URL", "http://localhost"),
+            "X-Title": os.getenv("OPENROUTER_APP_TITLE", "allAIinone"),
+            "User-Agent": "allAIinone/1.0",
+        }
+        # 允许同时发送图片（URL 或前端 base64）+ 文本
+        content_parts: List[Dict[str, Any]] = []
+        url_list = []
+        if req.image_url:
+            url_list.append(req.image_url)
+        if req.image_url_list:
+            url_list.extend([u for u in req.image_url_list if u])
+        for url in url_list[:4]:
+            content_parts.append({"type": "image_url", "image_url": {"url": url}})
+        # 多张 base64
+        b64_list = []
+        if req.image_b64_list:
+            b64_list.extend(req.image_b64_list[:4])
+        if req.image_b64:
+            b64_list.append(req.image_b64)
+        for b64 in b64_list[:4]:
+            content_parts.append(
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}
+            )
+        if req.prompt:
+            content_parts.append({"type": "text", "text": req.prompt})
+        if not content_parts:
+            raise HTTPException(status_code=400, detail="请输入提示词或图片")
+
+        payload = {
+            "model": req.model,
+            "messages": [{"role": "user", "content": content_parts}],
+            "modalities": ["image", "text"],
+        }
+        resp = None
+        for attempt in range(3):
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120,
+            )
+            if resp.status_code < 500:
+                break
+            if attempt < 2:
+                time.sleep(1 + attempt)
+        if resp is None:
+            raise HTTPException(status_code=502, detail="请求未发送成功")
+        if not resp.ok:
+            raise HTTPException(status_code=resp.status_code, detail=resp.text[:500])
+        data = resp.json()
+        try:
+            images = data["choices"][0]["message"]["images"]
+            b64_url = images[0]["image_url"]["url"]
+            prefix = "base64,"
+            pos = b64_url.find(prefix)
+            if pos == -1:
+                raise ValueError("unexpected image_url format")
+            b64 = b64_url[pos + len(prefix):]
+            return {"data": [{"b64_json": b64}]}
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"解析图片失败: {exc}")
+
     client = OpenAI(
         base_url="https://openrouter.ai/api/v1",
         api_key=OPENROUTER_API_KEY,
         default_headers={
-            "HTTP-Referer": "https://localhost",
-            "X-Title": "allAIinone",
+            "HTTP-Referer": os.getenv("OPENROUTER_SITE_URL", "http://localhost"),
+            "X-Title": os.getenv("OPENROUTER_APP_TITLE", "allAIinone"),
             "User-Agent": "allAIinone/1.0",
         },
     )
@@ -175,10 +247,8 @@ def call_openrouter_image(req: ImageRequest) -> Dict[str, Any]:
             size=req.size,
             response_format="b64_json",
         )
-        # openai SDK 返回对象，转 dict
         return {"data": [{"b64_json": resp.data[0].b64_json}]}
     except Exception as exc:
-        # 捕获 SDK 内部异常，向前端返回可读信息
         raise HTTPException(status_code=502, detail=str(exc))
 
 
