@@ -14,7 +14,7 @@ from dashscope import VideoSynthesis
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from pydantic import BaseModel
@@ -757,7 +757,7 @@ async def api_me_avatar(request: Request, file: UploadFile = File(...)) -> Dict[
 def root() -> FileResponse:
     index_path = Path("public/index.html")
     if index_path.exists():
-        return FileResponse(index_path)
+        return RedirectResponse(url="/web/index.html")
     return FileResponse("README.md")
 
 
