@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户中心</title>
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --primary: #0f766e;
+      --primary-2: #14b8a6;
+      --text: #0f172a;
+      --muted: #475569;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:18px; }
+    header { padding:16px 20px; background:#fff; box-shadow:0 8px 24px rgba(0,0,0,0.04); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; }
+    header nav a { margin-left:12px; text-decoration:none; color:var(--text); padding:8px 10px; border-radius:10px; border:1px solid var(--border); background:#fff; }
+    .layout { max-width:1200px; margin:20px auto; padding:0 16px; display:grid; grid-template-columns:260px 1fr; gap:16px; }
+    .sidebar { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:10px; }
+    .sidebar button { width:100%; padding:12px; border:none; border-radius:10px; background:#f1f5f9; color:var(--text); font-size:16px; cursor:pointer; border:1px solid var(--border); text-align:left; }
+    .sidebar button.active { background:linear-gradient(120deg, var(--primary), var(--primary-2)); color:#fff; border:none; box-shadow:0 12px 26px rgba(20,184,166,0.25); }
+    .content { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; box-shadow:0 14px 36px rgba(15,118,110,0.08); min-height:520px; }
+    h2 { margin:0 0 10px; }
+    .muted { color:var(--muted); font-size:16px; margin:0 0 12px; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    label { display:block; margin:8px 0 6px; font-weight:650; color:var(--muted); }
+    input, select { width:100%; padding:12px; border:1px solid var(--border); border-radius:10px; font-size:16px; }
+    button.primary { padding:12px; border:none; border-radius:10px; background:linear-gradient(120deg, var(--primary), var(--primary-2)); color:#fff; font-weight:750; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:10px 8px; border-bottom:1px solid var(--border); text-align:left; font-size:16px; }
+    .img-wrap { text-align:center; }
+    .img-wrap img { max-width:100%; border-radius:12px; border:1px solid var(--border); box-shadow:0 10px 24px rgba(0,0,0,0.08); }
+    @media (max-width:1000px){ .layout { grid-template-columns:1fr; } .row { grid-template-columns:1fr; } }
+    .tag { display:inline-block; padding:6px 10px; border-radius:999px; background:#ecfeff; color:#0f766e; font-weight:700; font-size:13px; }
+    .avatar { width:90px; height:90px; border-radius:50%; background:#e2e8f0; background-size:cover; background-position:center; border:1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="welcome-text"><strong>用户中心</strong></div>
+    <nav>
+      <a href="/web/index.html">首页</a>
+      <a href="/web/chat.html">对话</a>
+      <a href="/web/image.html">图片</a>
+      <a href="/web/video.html">视频</a>
+      <a href="#" id="logout-btn">退出</a>
+    </nav>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <button data-tab="account" class="active">账户信息</button>
+      <button data-tab="pay">充值 / 联系</button>
+      <button data-tab="admin">管理员：用户管理</button>
+    </aside>
+
+    <section class="content">
+      <div id="tab-account">
+        <h2>账户信息</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:12px;">
+          <div style="background:#0f172a; color:#e5e7eb; border-radius:14px; padding:14px; box-shadow:0 14px 28px rgba(15,23,42,0.18);">
+            <div style="font-weight:800; font-size:18px;">权限摘要</div>
+            <ul style="margin:10px 0 0; padding-left:18px; line-height:1.6;">
+              <li>付费：图片/编辑 -1 元；视频 -3 元</li>
+              <li>VIP/管理员：不限次数</li>
+              <li>免费：仅支持对话</li>
+            </ul>
+          </div>
+          <div style="background:#ecfeff; color:#0f172a; border:1px solid #bae6fd; border-radius:14px; padding:14px; box-shadow:0 10px 24px rgba(14,165,233,0.18);">
+            <div style="font-weight:800; font-size:18px;">账户状态</div>
+            <div style="margin-top:10px; display:grid; gap:8px;">
+              <div><span class="tag">角色</span> <strong id="info-role">-</strong></div>
+              <div><span class="tag">余额</span> <strong id="info-balance">-</strong></div>
+              <div><span class="tag">权限</span> <strong id="info-status">-</strong></div>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>用户名</label>
+            <div id="info-username">-</div>
+          </div>
+          <div>
+            <label>角色</label>
+            <div id="info-role">-</div>
+          </div>
+        </div>
+        <div class="row" style="align-items:center; margin-top:10px;">
+          <div>
+            <label>头像</label>
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+              <div id="avatar-preview" class="avatar"></div>
+              <button class="primary" id="avatar-upload-btn" type="button" style="width:auto;">上传头像</button>
+              <input id="avatar-file" type="file" accept="image/*" style="display:none;">
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="tag">登录后可用</div>
+        </div>
+      </div>
+
+      <div id="tab-pay" style="display:none;">
+        <h2>充值 / 联系</h2>
+        <p class="muted">扫码付款后，添加微信并备注用户名，方便手工加额度</p>
+        <div class="row">
+          <div class="img-wrap">
+            <div class="muted">收款码</div>
+            <img src="/media/paycode.jpg" alt="收款码">
+          </div>
+          <div class="img-wrap">
+            <div class="muted">微信</div>
+            <img src="/media/wechat.jpg" alt="微信">
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-admin" style="display:none;">
+        <h2>管理员：用户管理</h2>
+        <p class="muted">手工调整用户角色/余额</p>
+        <table id="user-table">
+          <thead><tr><th>用户名</th><th>角色</th><th>余额</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div style="margin-top:12px;">
+          <label>选择用户</label>
+          <select id="admin-username"></select>
+          <div class="row">
+            <div>
+              <label>角色</label>
+              <select id="admin-role">
+                <option value="free">free</option>
+                <option value="paid">paid</option>
+                <option value="vip">vip</option>
+                <option value="admin">admin</option>
+              </select>
+            </div>
+            <div>
+              <label>余额</label>
+              <input id="admin-balance" type="number" step="0.01" value="0">
+            </div>
+          </div>
+          <button class="primary" style="margin-top:12px;" id="admin-save">保存</button>
+          <div id="admin-msg" class="muted" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/web/auth.html";
+    }
+    function authHeader() { return { "Authorization": "Bearer " + token }; }
+
+    function switchTab(tab) {
+      ["account","pay","admin"].forEach(t => {
+        document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
+      });
+      document.querySelectorAll(".sidebar button").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tab);
+      });
+    }
+
+    document.querySelectorAll(".sidebar button").forEach(btn => {
+      btn.onclick = () => switchTab(btn.dataset.tab);
+    });
+
+    async function loadMe() {
+      const res = await fetch("/api/me", { headers: authHeader() });
+      if (!res.ok) {
+        localStorage.removeItem("token");
+        window.location.href = "/web/auth.html";
+        return;
+      }
+      const data = await res.json();
+      const u = data.user;
+      document.getElementById("welcome-text").innerHTML = `<strong>${u.username}：欢迎使用 ALL AI IN ONE</strong>`;
+      document.getElementById("info-username").textContent = u.username;
+      document.getElementById("info-role").textContent = u.role;
+      document.getElementById("info-balance").textContent = (u.balance ?? 0).toFixed(2);
+      document.getElementById("info-status").textContent = u.role === "free" ? "仅对话" : "可用全部功能";
+      if (u.avatar) {
+        document.getElementById("avatar-preview").style.backgroundImage = `url(${u.avatar})`;
+      } else {
+        document.getElementById("avatar-preview").style.backgroundImage = "";
+      }
+      if (u.role === "admin") {
+        document.querySelector('button[data-tab="admin"]').style.display = "block";
+        document.getElementById("tab-admin").dataset.adminVisible = "1";
+        loadUsers();
+      } else {
+        document.querySelector('button[data-tab="admin"]').style.display = "none";
+      }
+    }
+
+    async function loadUsers() {
+      const res = await fetch("/api/admin/users", { headers: authHeader() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const tbody = document.querySelector("#user-table tbody");
+      const select = document.getElementById("admin-username");
+      tbody.innerHTML = "";
+      select.innerHTML = "";
+      (data.users || []).forEach(u => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td>${(u.balance ?? 0).toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+        const opt = document.createElement("option");
+        opt.value = u.username;
+        opt.textContent = u.username;
+        select.appendChild(opt);
+      });
+    }
+
+    document.getElementById("admin-save").onclick = async () => {
+      const username = document.getElementById("admin-username").value;
+      const role = document.getElementById("admin-role").value;
+      const balance = parseFloat(document.getElementById("admin-balance").value || "0");
+      const res = await fetch("/api/admin/users/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader() },
+        body: JSON.stringify({ username, role, balance })
+      });
+      const data = await res.json();
+      const msg = document.getElementById("admin-msg");
+      if (!res.ok) {
+        msg.textContent = data?.detail || "操作失败";
+      } else {
+        msg.textContent = "已保存";
+        loadUsers();
+      }
+    };
+
+    document.getElementById("logout-btn").onclick = () => {
+      localStorage.removeItem("token");
+      window.location.href = "/web/auth.html";
+    };
+
+    document.getElementById("avatar-upload-btn").onclick = () => {
+      document.getElementById("avatar-file").click();
+    };
+
+    document.getElementById("avatar-file").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/me/avatar", {
+        method: "POST",
+        headers: authHeader(),
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data?.detail || "上传失败");
+        return;
+      }
+      document.getElementById("avatar-preview").style.backgroundImage = `url(${data.avatar})`;
+    });
+
+    switchTab("account");
+    loadMe().catch(err => console.error(err));
+  </script>
+</body>
+</html>

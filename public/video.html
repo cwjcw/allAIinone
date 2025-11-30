@@ -20,6 +20,7 @@
 <body>
   <header>
     <div>
+      <div id="welcome-text" style="font-weight:800; margin-bottom:6px;">欢迎使用 ALL AI IN ONE</div>
       <h1>视频创作中心</h1>
       <p>选择一个视频类型进入单独页：更大的字体、清晰的步骤与提示词说明</p>
     </div>
@@ -54,5 +55,18 @@
       <a class="button" href="/web/video_kf2v.html">进入首尾帧页</a>
     </div>
   </main>
+  <script>
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("/api/me", { headers: { "Authorization": "Bearer " + token } })
+        .then(res => res.json())
+        .then(data => {
+          if (data?.user?.username) {
+            document.getElementById("welcome-text").textContent = `${data.user.username}：欢迎使用 ALL AI IN ONE`;
+          }
+        })
+        .catch(()=>{});
+    }
+  </script>
 </body>
 </html>

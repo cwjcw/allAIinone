@@ -130,7 +130,9 @@ __pypackages__/
 # Generated images
 generated_images/
 generated_videos/
+# 媒体输出（包括头像）不提交
 media/
+media/avatars/
 
 # Celery stuff
 celerybeat-schedule

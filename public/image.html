@@ -15,7 +15,7 @@
       --muted: #475569;
     }
     * { box-sizing: border-box; }
-    body { margin:0; font-family:"Inter","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+    body { margin:0; font-family:"Inter","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:18px; }
     header { padding:16px 20px; background:rgba(255,255,255,0.9); backdrop-filter:blur(12px); box-shadow:0 8px 30px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; }
     header a { text-decoration:none; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:#fff; color:var(--text); }
     main { max-width:1040px; margin:24px auto; background:var(--card); border:1px solid var(--border); border-radius:18px; padding:24px; box-shadow:0 18px 50px rgba(15, 118, 110, 0.08); }
@@ -37,7 +37,7 @@
 </head>
 <body>
   <header>
-    <div><strong>画图 - OpenRouter</strong></div>
+    <div><strong id="welcome-text">欢迎使用 ALL AI IN ONE</strong></div>
     <a href="/web/index.html">返回首页</a>
   </header>
   <main>
@@ -74,10 +74,18 @@
 
   <script>
     const state = { models: [] };
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/web/auth.html";
+    }
+    function authHeader() { return { "Authorization": "Bearer " + token }; }
+    fetch("/api/me", { headers: authHeader() }).then(r=>r.json()).then(d=>{
+      document.getElementById("welcome-text").textContent = `${d.user.username}：欢迎使用 ALL AI IN ONE`;
+    }).catch(()=>{});
     function setOutput(text) { document.getElementById("image-output").textContent = text; }
 
     async function fetchModels() {
-      const res = await fetch("/api/models");
+      const res = await fetch("/api/models", { headers: authHeader() });
       if (!res.ok) throw new Error("获取模型失败");
       const data = await res.json();
       state.models = data.data || [];
@@ -156,7 +164,7 @@
         if (b64_list.length > 1) body.image_b64_list = b64_list;
         const res = await fetch("/api/image", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeader() },
           body: JSON.stringify(body)
         });
         const data = await res.json();

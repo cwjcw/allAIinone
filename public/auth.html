@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 / 注册</title>
+  <style>
+    :root {
+      --bg: linear-gradient(135deg, #0ea5e9 0%, #22d3ee 50%, #0ea5e9 100%);
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e5e7eb;
+      --primary: #0f766e;
+      --primary-2: #14b8a6;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Inter","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .container { width:100%; max-width:520px; display:flex; flex-direction:column; gap:12px; align-items:center; }
+    .welcome { color:#f8fafc; font-weight:850; text-align:center; font-size:26px; line-height:1.5; letter-spacing:0.02em; text-shadow:0 10px 30px rgba(0,0,0,0.35); padding:14px 18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:16px; }
+    .card { width:100%; max-width:420px; background:var(--card); border-radius:18px; padding:28px; box-shadow:0 22px 60px rgba(0,0,0,0.14); }
+    h1 { margin:0 0 6px; color:var(--text); }
+    p { margin:0 0 20px; color:var(--muted); }
+    label { display:block; margin:12px 0 6px; color:var(--muted); font-weight:600; }
+    input { width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); font-size:14px; }
+    input:focus { outline:2px solid rgba(20,184,166,0.3); border-color:var(--primary-2); }
+    button { width:100%; margin-top:16px; padding:13px; border:none; border-radius:12px; background:linear-gradient(120deg, var(--primary), var(--primary-2)); color:#fff; font-weight:750; cursor:pointer; box-shadow:0 10px 24px rgba(20,184,166,0.25); letter-spacing:0.01em; }
+    .switch { text-align:center; margin-top:14px; color:var(--muted); cursor:pointer; }
+    .switch:hover { color:var(--text); }
+    .msg { margin-top:12px; color:#ef4444; min-height:18px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="welcome">欢迎登录<br>老崔为你准备的 All AI in One</div>
+    <div class="card">
+      <h1 id="title">登录</h1>
+      <p id="desc">登录后即可使用全部功能</p>
+      <label>用户名</label>
+      <input id="username" placeholder="请输入用户名">
+      <label>密码</label>
+      <input id="password" type="password" placeholder="请输入密码">
+      <button id="submit-btn">登录</button>
+      <div class="switch" id="switch-mode">还没有账号？点此注册</div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+
+  <script>
+    let mode = "login";
+    const msg = document.getElementById("msg");
+    const title = document.getElementById("title");
+    const desc = document.getElementById("desc");
+    const switchBtn = document.getElementById("switch-mode");
+    const submitBtn = document.getElementById("submit-btn");
+
+    function setMode(next) {
+      mode = next;
+      if (mode === "login") {
+        title.textContent = "登录";
+        desc.textContent = "登录后即可使用全部功能";
+        submitBtn.textContent = "登录";
+        switchBtn.textContent = "还没有账号？点此注册";
+      } else {
+        title.textContent = "注册";
+        desc.textContent = "首次注册的第一个账号将成为管理员";
+        submitBtn.textContent = "注册";
+        switchBtn.textContent = "已有账号？点此登录";
+      }
+      msg.textContent = "";
+    }
+
+    switchBtn.onclick = () => setMode(mode === "login" ? "register" : "login");
+
+    async function submit() {
+      msg.textContent = "";
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      if (!username || !password) {
+        msg.textContent = "请输入用户名和密码";
+        return;
+      }
+      const url = mode === "login" ? "/api/login" : "/api/register";
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          msg.textContent = data?.detail || "请求失败";
+          return;
+        }
+        localStorage.setItem("token", data.token);
+        window.location.href = "/web/index.html";
+      } catch (e) {
+        msg.textContent = e;
+      }
+    }
+
+    submitBtn.onclick = submit;
+    document.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    setMode("login");
+  </script>
+</body>
+</html>

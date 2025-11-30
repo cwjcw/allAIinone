@@ -1,0 +1,23 @@
+{
+  "cwjcw": {
+    "username": "cwjcw",
+    "password_hash": "9DOX8SmisnMB7jYXh-o4Vw==.VZFmzz_aZsRBz6JO3z-5C-BZiU6-4V1ReqTcBWt7uE0=",
+    "role": "admin",
+    "balance": 0.0,
+    "avatar": "/media/avatars/avatar_cwjcw_1764484634.png"
+  },
+  "chensi": {
+    "username": "chensi",
+    "password_hash": "NdsDqMlWF2AgljJOpA36Ow==.CCuoKhthgnn9g8SBMAtN1WkObKx_gKC4DGfQDSIy7J0=",
+    "role": "free",
+    "balance": 10.0,
+    "avatar": ""
+  },
+  "ccm": {
+    "username": "ccm",
+    "password_hash": "mGHfaV-m1nIMObD-m5h-KA==.RqxmRASS5IvjBRU_eB5JgrbRdl5ujkavcw45i7wIOqc=",
+    "role": "paid",
+    "balance": 20.0,
+    "avatar": ""
+  }
+}

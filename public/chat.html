@@ -4,49 +4,133 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>对话 - OpenRouter 免费模型</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
-    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:#f7f9fb; color:#111; }
-    header { padding:16px 20px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
-    main { max-width:960px; margin:20px auto; background:#fff; border:1px solid #e5e7eb; border-radius:16px; padding:20px; box-shadow:0 10px 24px rgba(0,0,0,0.06); }
-    label { display:block; margin:10px 0 6px; font-weight:600; color:#4b5563; }
-    select, textarea, button { width:100%; box-sizing:border-box; }
-    textarea { min-height:140px; padding:12px; border-radius:12px; border:1px solid #e5e7eb; font-size:14px; }
-    select { padding:10px; border-radius:10px; border:1px solid #e5e7eb; }
-    button { margin-top:12px; padding:12px; border:none; border-radius:12px; background:#1bc48f; color:#fff; font-weight:700; cursor:pointer; }
-    .output { margin-top:14px; padding:12px; background:#0f172a; color:#e5e7eb; border-radius:12px; min-height:80px; }
+    :root { --bg:#f4f6fb; --card:#fff; --text:#0f172a; --muted:#475569; --accent:#0fa9a7; }
+    body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); font-size:18px; }
+    header { padding:18px 24px; background:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:10; }
+    .shell { max-width:1100px; margin:18px auto; padding:0 12px; display:grid; grid-template-columns:280px 1fr; gap:12px; }
+    .history-pane { background:var(--card); border:1px solid #e2e8f0; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.05); display:flex; flex-direction:column; height:calc(100vh - 160px); }
+    .history-header { padding:12px 14px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #e2e8f0; }
+    .history-list { flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:8px; }
+    .history-item { padding:10px 12px; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; font-size:14px; color:#0f172a; cursor:pointer; }
+    .chat-wrap { background:var(--card); border:1px solid #e2e8f0; border-radius:18px; box-shadow:0 16px 40px rgba(0,0,0,0.06); display:flex; flex-direction:column; height:calc(100vh - 160px); }
+    .chat-log { flex:1; padding:18px; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+    .bubble { padding:12px 14px; border-radius:14px; max-width:78%; line-height:1.6; }
+    .user { align-self:flex-end; background:#e0f7fa; color:#0f172a; border:1px solid #b2ebf2; }
+    .assistant { align-self:flex-start; background:#0f172a; color:#e5e7eb; border:1px solid #0b1229; }
+    .composer { border-top:1px solid #e2e8f0; padding:14px 18px; display:grid; grid-template-columns:200px 1fr 120px; gap:10px; align-items:center; background:#fafbff; border-radius:0 0 18px 18px; }
+    select, textarea { width:100%; box-sizing:border-box; font-size:16px; }
+    textarea { min-height:90px; padding:12px; border-radius:12px; border:1px solid #e5e7eb; resize:vertical; }
+    select { padding:12px; border-radius:12px; border:1px solid #e5e7eb; }
+    button { width:100%; padding:12px; border:none; border-radius:12px; background:var(--accent); color:#fff; font-weight:750; cursor:pointer; }
     .actions { display:flex; gap:10px; }
   </style>
 </head>
 <body>
   <header>
-    <div>
-      <strong>对话 - OpenRouter 免费模型</strong>
-    </div>
+    <div id="welcome-text"><strong>欢迎使用 ALL AI IN ONE</strong></div>
     <div class="actions">
       <button id="refresh-models" style="width:auto;">刷新并缓存模型</button>
       <a href="/web/index.html" style="text-decoration:none; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#111;">返回首页</a>
     </div>
   </header>
-  <main>
-    <label>模型（仅免费模型）</label>
-    <select id="chat-model"></select>
-    <label>提问</label>
-    <textarea id="chat-input" placeholder="输入你的问题..."></textarea>
-    <button id="chat-send">发送</button>
-    <div class="output" id="chat-output">等待输入...</div>
-  </main>
+  <div class="shell">
+    <aside class="history-pane">
+      <div class="history-header">
+        <button id="new-chat" style="width:auto; padding:10px 12px; border:none; border-radius:10px; background:var(--accent); color:#fff; font-weight:750; cursor:pointer;">开启新对话</button>
+      </div>
+      <div id="history-note" style="padding:8px 14px; color:#475569; font-size:14px;">显示最近3天内的对话历史</div>
+      <div class="history-list" id="history-list"></div>
+    </aside>
+    <div class="chat-wrap">
+      <div class="chat-log" id="chat-log"></div>
+      <div class="composer">
+        <select id="chat-model"></select>
+        <textarea id="chat-input" placeholder="输入你的问题..."></textarea>
+        <button id="chat-send">发送</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const state = { models: [] };
+    const token = localStorage.getItem("token");
+    if (!token) {
+      window.location.href = "/web/auth.html";
+    }
+    function authHeader() { return { "Authorization": "Bearer " + token }; }
 
-    function setOutput(text) {
-      document.getElementById("chat-output").textContent = text;
+    function appendBubble(text, role) {
+      const log = document.getElementById("chat-log");
+      const div = document.createElement("div");
+      div.className = `${role} bubble`;
+      if (role === "assistant" && window.marked) {
+        div.innerHTML = marked.parse(text || "");
+      } else {
+        div.textContent = text;
+      }
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function renderHistoryList(history) {
+      const list = document.getElementById("history-list");
+      list.innerHTML = "";
+      history.slice().reverse().forEach((item, idx) => {
+        const snippet = (item.content || "").slice(0, 30);
+        const div = document.createElement("div");
+        div.className = "history-item";
+        div.textContent = `${item.role === "user" ? "我" : "助手"}: ${snippet}`;
+        div.dataset.index = idx;
+        div.onclick = () => reloadChat(history);
+        list.appendChild(div);
+      });
+    }
+
+    function reloadChat(history) {
+      document.getElementById("chat-log").innerHTML = "";
+      history.sort((a,b) => (a.ts||0)-(b.ts||0));
+      history.forEach(item => appendBubble(item.content || "", item.role || "assistant"));
+    }
+
+    async function fetchMe() {
+      const res = await fetch("/api/me", { headers: authHeader() });
+      if (res.ok) {
+        const data = await res.json();
+        const u = data.user;
+        document.getElementById("welcome-text").innerHTML = `<strong>${u.username}：欢迎使用 ALL AI IN ONE</strong>`;
+      }
+    }
+
+    async function fetchHistory() {
+      const res = await fetch("/api/chat/history", { headers: authHeader() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const history = data.history || [];
+      history.sort((a,b) => (a.ts||0)-(b.ts||0));
+      history.forEach(item => appendBubble(item.content || "", item.role || "assistant"));
+      renderHistoryList(history);
+      if (data.notice) {
+        document.getElementById("history-note").textContent = data.notice;
+      }
     }
 
     async function fetchModels(refresh=false) {
       const endpoint = refresh ? "/api/models/refresh" : "/api/models";
-      const res = await fetch(endpoint, { method: refresh ? "POST" : "GET" });
-      if (!res.ok) throw new Error("获取模型失败");
+      const res = await fetch(endpoint, {
+        method: refresh ? "POST" : "GET",
+        headers: authHeader()
+      });
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/web/auth.html";
+        return;
+      }
+      if (!res.ok) {
+        const msg = (await res.json()?.detail) || "获取模型失败";
+        throw new Error(msg);
+      }
       const data = await res.json();
       state.models = data.data || [];
       const free = state.models.filter(m => m.free);
@@ -58,31 +142,45 @@
         opt.textContent = m.id;
         select.appendChild(opt);
       });
-      setOutput("模型列表已更新");
     }
 
     async function sendChat() {
-      setOutput("发送中...");
       const model = document.getElementById("chat-model").value;
-      const content = document.getElementById("chat-input").value.trim();
-      if (!content) { setOutput("请输入内容"); return; }
+      const inputEl = document.getElementById("chat-input");
+      const content = inputEl.value.trim();
+      if (!content) { return; }
+      appendBubble(content, "user");
+      inputEl.value = "";
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...authHeader() },
           body: JSON.stringify({ model, messages: [{ role:"user", content }] })
         });
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/web/auth.html";
+          return;
+        }
         const data = await res.json();
         const reply = data?.choices?.[0]?.message?.content || "无回复";
-        setOutput(reply);
+        appendBubble(reply, "assistant");
+        fetchHistory();
       } catch (err) {
         alert(`对话失败：${err}`);
-        setOutput("");
       }
     }
 
     document.getElementById("refresh-models").onclick = () => fetchModels(true).catch(e=>alert(e));
     document.getElementById("chat-send").onclick = sendChat;
+    document.getElementById("chat-input").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && e.ctrlKey) {
+        e.preventDefault();
+        sendChat();
+      }
+    });
+    fetchMe();
+    fetchHistory().catch(()=>{});
     fetchModels().catch(e=>alert(e));
   </script>
 </body>

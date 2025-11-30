@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AllAI 汇集 - 模块总览</title>
+  <title>All AI IN ONE - 模块总览</title>
   <style>
     body { margin:0; font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; background:#f7f9fb; color:#111; }
-    header { padding:24px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); }
+    header { padding:24px; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05); display:flex; justify-content:space-between; align-items:center; }
     h1 { margin:0; font-size:24px; }
+    .user-entry { display:flex; align-items:center; gap:10px; }
+    .avatar { width:40px; height:40px; border-radius:50%; background:#e2e8f0; border:1px solid #e5e7eb; background-size:cover; background-position:center; display:none; }
+    .user-btn { padding:8px 12px; border-radius:10px; background:#1bc48f; color:#fff; text-decoration:none; font-weight:700; }
     main { padding:24px; display:grid; gap:16px; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); }
     .card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:16px; box-shadow:0 8px 20px rgba(0,0,0,0.06); }
     .card h2 { margin:0 0 8px; font-size:18px; }
@@ -17,8 +20,15 @@
 </head>
 <body>
   <header>
-    <h1>AllAI 汇集 - 模块总览</h1>
-    <p>选择模块进入对应功能页面。对话仅使用 OpenRouter 免费模型；视频基于通义万相。</p>
+    <div>
+      <div id="welcome-text" style="font-weight:800; margin-bottom:6px;">欢迎使用 ALL AI IN ONE</div>
+      <h1>All AI IN ONE - 模块总览</h1>
+      <p style="margin:6px 0 0;">选择模块进入对应功能页面。对话仅使用 OpenRouter 免费模型；视频基于通义万相等</p>
+    </div>
+    <div class="user-entry">
+      <div id="avatar" class="avatar"></div>
+      <a id="user-link" class="user-btn" href="/web/auth.html">登录 / 注册</a>
+    </div>
   </header>
   <main>
     <div class="card">
@@ -37,5 +47,33 @@
       <a href="/web/video.html">进入视频</a>
     </div>
   </main>
+  <script>
+    const token = localStorage.getItem("token");
+    const link = document.getElementById("user-link");
+    const avatar = document.getElementById("avatar");
+    const welcome = document.getElementById("welcome-text");
+    if (token) {
+      fetch("/api/me", { headers: { "Authorization": "Bearer " + token } })
+        .then(async (res) => {
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          const u = data.user;
+          link.textContent = u.username || "用户中心";
+          link.href = "/web/user.html";
+          avatar.style.display = "block";
+          if (u.avatar) {
+            avatar.style.backgroundImage = `url(${u.avatar})`;
+          } else {
+            avatar.style.backgroundImage = "";
+          }
+          welcome.textContent = `${u.username}：欢迎使用 ALL AI IN ONE`;
+        })
+        .catch(() => {
+          localStorage.removeItem("token");
+        });
+    } else {
+      welcome.textContent = "欢迎使用 ALL AI IN ONE";
+    }
+  </script>
 </body>
 </html>
